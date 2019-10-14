@@ -1,11 +1,16 @@
 package org.mos.kit.unit.expectation;
 
+import java.util.Objects;
+
+import lombok.ToString;
+
+@ToString
 public class UnitResult<T> {
 	private final T value;
 	private final Throwable exception;
 
 	public UnitResult(Throwable exception) {
-		this(null, exception);
+		this(null, Objects.requireNonNull(exception));
 	}
 
 	public UnitResult(T value) {

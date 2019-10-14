@@ -1,5 +1,8 @@
 package org.mos.kit.unit;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import org.junit.runners.model.FrameworkMethod;
 
 import junitparams.custom.ParametersProvider;
@@ -25,14 +28,29 @@ public class TestCasesProvider implements ParametersProvider<TestCases> {
 	}
 
 	private <T, TC extends AbstractTestCase<T, TC>> TestCasesRegistry<T, TC> extracted(Class<? extends TC> tc) {
-		TestCasesRegistry<T, TC> tcRegistry = new TestCasesRegistry<>();
+		return new TestCasesRegistry<>(() -> createNewInstance(tc));
+	}
+
+	private <T, TC extends AbstractTestCase<T, TC>> TC createNewInstance(Class<? extends TC> tc) {
 		try {
-			TC instance = tc.newInstance();
-			instance.createParams(tcRegistry);
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
-			throw new RuntimeException(e.getMessage(), e);
+			Constructor<TC> defaultConstructor = getDefaultConstructorOrException(tc);
+			return defaultConstructor.newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException(String.format("Cannot create the new instance of class [%s]", tc), e);
 		}
-		return tcRegistry;
+	}
+
+	private <T, TC extends AbstractTestCase<T, TC>> Constructor<TC> getDefaultConstructorOrException(
+			Class<? extends TC> tc) {
+		Constructor<?>[] constructors = tc.getDeclaredConstructors();
+		if (constructors.length != 1) {
+			throw new NullPointerException(String.format("Default constructor not exists for class [%s]", tc));
+		}
+		@SuppressWarnings("unchecked")
+		Constructor<TC> defaultConstructor = (Constructor<TC>) constructors[0];
+		defaultConstructor.setAccessible(true);
+		return defaultConstructor;
 	}
 
 }

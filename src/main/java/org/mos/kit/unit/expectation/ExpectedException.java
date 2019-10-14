@@ -8,7 +8,7 @@ import org.junit.Assert;
 
 public class ExpectedException<T> implements Expectation<T> {
 
-	private static final String AN_EXCEPTION_S_IS_THROWN = "An Exception [%s] is thrown";
+	private static final String AN_EXCEPTION_S_IS_THROWN = "An Exception [%s] is expected to be thrown.";
 	private final Matcher<Throwable> matcher;
 	private final String name;
 

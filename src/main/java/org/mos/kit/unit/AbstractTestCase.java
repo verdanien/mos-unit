@@ -1,5 +1,6 @@
 package org.mos.kit.unit;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -8,11 +9,15 @@ import org.mos.kit.unit.args.TestCaseParamIgnore;
 import org.mos.kit.unit.expectation.Expectation;
 import org.mos.kit.unit.expectation.UnitResult;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
-@NoArgsConstructor()
-@SuperBuilder(toBuilder = true)
+@Accessors(chain = true, fluent=true)
+@Getter
+@Setter
+@NoArgsConstructor
 public abstract class AbstractTestCase<T, TC extends AbstractTestCase<T, TC>> {
 	public static final String TEST_CASE_NAME = "{0}";
 	@TestCaseParamIgnore
@@ -27,9 +32,11 @@ public abstract class AbstractTestCase<T, TC extends AbstractTestCase<T, TC>> {
 	private TestCasesRegistry<T, TC> testCasesRegistry;
 	@TestCaseParamIgnore
 	private StackTraceElement stackElement;
+	@TestCaseParamIgnore
+	private TestCasesRegistry<T, TC>.TestCaseRegistryExpects when;
 
 	void setExpectation(Expectation<T> expectation) {
-		this.expectation = expectation;
+		this.expectation = Objects.requireNonNull(expectation);
 	}
 
 	void setIndex(int index) {
@@ -101,7 +108,7 @@ public abstract class AbstractTestCase<T, TC extends AbstractTestCase<T, TC>> {
 	}
 
 	private String printName() {
-		return name == null ? String.format("expects[%s] for[%s]", printExpectation(), printArgs()): name;
+		return name == null ? String.format("expects[%s] for[%s]", printExpectation(), printArgs()) : name;
 	}
 
 	private String printArgs() {
@@ -111,6 +118,23 @@ public abstract class AbstractTestCase<T, TC extends AbstractTestCase<T, TC>> {
 	private String printExpectation() {
 		Function<Object, String> fn = value -> testCasesRegistry.printValue(getThis(), value);
 		return getExpectation().print(fn);
+	}
+
+	@SuppressWarnings("unchecked")
+	protected TC create() {
+		try {
+			return (TC) getClass().newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+	
+	public TestCasesRegistry<T, TC>.TestCaseRegistryExpects then() {
+		return when;
+	}
+
+	void setWhen(TestCasesRegistry<T, TC>.TestCaseRegistryExpects when) {
+		this.when = when;
 	}
 
 }

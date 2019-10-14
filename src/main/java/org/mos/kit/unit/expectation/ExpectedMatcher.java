@@ -22,6 +22,7 @@ public class ExpectedMatcher<T> implements Expectation<T> {
 	@Override
 	public void assertThat(UnitResult<T> unitResult) {
 		if (unitResult.isException()) {
+			unitResult.getException().printStackTrace();
 			Assert.assertNull("An Exception is Thrown:", unitResult.getException());
 		} else {
 			Assert.assertThat("reason", unitResult.getValue(), matcher);

@@ -23,7 +23,8 @@ public class TestCaseToString<TYPE> {
 
 	private static final String ARGS_DELIMITER = ", ";
 	private static final int FIRST_PARAM_INDEX = 0;
-	private static final BiFunction<Object, Object, String> DEFAULT_FORMATTER = (instance, value) -> String.valueOf(value);
+	private static final BiFunction<Object, Object, String> DEFAULT_FORMATTER = (instance, value) -> String
+			.valueOf(value);
 	private static final int SINGLE_ARGUMENT = 1;
 	private static final String TO_STRING = "toString";
 	private final List<FieldConfig> fields;
@@ -33,8 +34,13 @@ public class TestCaseToString<TYPE> {
 		Objects.requireNonNull(clazz);
 		fields = new LinkedList<>();
 		formatters = new TreeMap<>(new ClassInheritanceComparator());
+		initStandardFormatters();
 		initToStringMethods(clazz);
 		initFields(clazz);
+	}
+
+	private void initStandardFormatters() {
+		registerFormatter(Class.class, Class::getName);
 	}
 
 	private void initToStringMethods(Class<?> clazz) {
@@ -55,8 +61,19 @@ public class TestCaseToString<TYPE> {
 	private void initMethod(Method method) {
 		if (isToStringMethod(method)) {
 			method.setAccessible(true);
-			formatters.put(method.getParameterTypes()[FIRST_PARAM_INDEX], createFormatter(method));
+			Class type = method.getParameterTypes()[FIRST_PARAM_INDEX];
+			BiFunction<Object, Object, String> formatter = createFormatter(method);
+			registerFormatter(type, formatter);
 		}
+	}
+
+	private <T> void registerFormatter(Class<T> clazz, Function<T, String> formatter) {
+		registerFormatter(clazz, (instance, value) -> formatter.apply(value));
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T> void registerFormatter(Class<T> clazz, BiFunction<Object, T, String> formatter) {
+		formatters.put(clazz, (instance, value) -> value==null ? DEFAULT_FORMATTER.apply(instance, value) : formatter.apply(instance, (T)value));
 	}
 
 	private BiFunction<Object, Object, String> createFormatter(Method method) {
@@ -95,7 +112,8 @@ public class TestCaseToString<TYPE> {
 	}
 
 	private String getName(Field field) {
-		return Optional.ofNullable(field.getDeclaredAnnotation(TestCaseParam.class)).map(TestCaseParam::value).orElse(field.getName());
+		return Optional.ofNullable(field.getDeclaredAnnotation(TestCaseParam.class)).map(TestCaseParam::value)
+				.orElse(field.getName());
 	}
 
 	private BiFunction<Object, Object, String> getFormatter(Field field) {
@@ -132,7 +150,8 @@ public class TestCaseToString<TYPE> {
 	}
 
 	public String toString(TYPE instance, Object value) {
-		BiFunction<Object, Object, String> formatter = Optional.ofNullable(value).map(Object::getClass).map(this::getFormatter).orElse(DEFAULT_FORMATTER);
+		BiFunction<Object, Object, String> formatter = Optional.ofNullable(value).map(Object::getClass)
+				.map(this::getFormatter).orElse(DEFAULT_FORMATTER);
 		return formatter.apply(instance, value);
 	}
 

@@ -4,6 +4,7 @@ import java.util.Comparator;
 
 public class ClassInheritanceComparator implements Comparator<Class<?>> {
 
+	private static final int LOWER_ELEMENT = -1;
 	private static final int GREATER_ELEMENT = 1;
 	private static final int SAME_ELEMENT = 0;
 
@@ -11,7 +12,9 @@ public class ClassInheritanceComparator implements Comparator<Class<?>> {
 	public int compare(Class<?> o1, Class<?> o2) {
 		int result;
 		if (o1 == null) {
-			result = o2 == null ? SAME_ELEMENT : GREATER_ELEMENT;
+			result = o2 == null ? SAME_ELEMENT : LOWER_ELEMENT;
+		} else if (o2 == null) {
+			return GREATER_ELEMENT;
 		} else if (o1.equals(o2)) {
 			result = SAME_ELEMENT;
 		} else if (o1.isAssignableFrom(o2) || o2.isAssignableFrom(o1)) {

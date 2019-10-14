@@ -13,7 +13,7 @@ public interface TestCaseRegistryExpectsI<IN, OUT> {
 
 	OUT expects(IN value, Matcher<IN> matcher);
 
-	OUT expects(Expectation<IN> expectation);
+	OUT expectsExpectation(Expectation<IN> expectation);
 
 	OUT expects(Matcher<IN> matcher, String message);
 

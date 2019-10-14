@@ -3,11 +3,12 @@ package org.mos.kit.unit;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.hamcrest.Matcher;
 import org.hamcrest.core.IsEqual;
-import org.mos.kit.unit.AbstractTestCase.AbstractTestCaseBuilder;
 import org.mos.kit.unit.args.TestCaseToString;
 import org.mos.kit.unit.expectation.Expectation;
 import org.mos.kit.unit.expectation.ExpectedException;
@@ -23,14 +24,21 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 	private static final int THREAD_STACK_NESTING_LEVEL = 2;
 	private static final int STACK_METHOD = 2;
 	private final List<TC> testCases;
+	private final Supplier<TC> tcFactory;
 	private TestCaseToString<TC> printer;
 
-	public TestCasesRegistry() {
+	public TestCasesRegistry(Supplier<TC> tcFactory) {
+		this.tcFactory = Objects.requireNonNull(tcFactory);
 		testCases = new LinkedList<>();
+		create().createParams(this);
 	}
 
 	public List<TC> getTestCases() {
 		return Collections.unmodifiableList(testCases);
+	}
+	
+	protected TC create() {
+		return tcFactory.get();
 	}
 
 	private void registerTestCase(TC tc, StackTraceElement stackElement) {
@@ -50,11 +58,12 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 	}
 
 	// FLUENT-CHAIN BUILDER METHODS
-	@Override
-	public <TCB extends AbstractTestCaseBuilder<T, TC, ? extends TC, ?>> TestCaseRegistryExpects when(TCB tcb) {
-		return when(STACK_METHOD, tcb.build());
+	public TC when() {
+		TC tc = create();
+		when(STACK_METHOD, tc);
+		return tc;
 	}
-
+	
 	@Override
 	public TestCaseRegistryExpects when(TC tc) {
 		return when(STACK_METHOD, tc);
@@ -81,7 +90,7 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 	}
 
 	@Override
-	public TestCaseRegistryWhen expects(Expectation<T> expectation) {
+	public TestCaseRegistryWhen expectsExpectation(Expectation<T> expectation) {
 		return expects(STACK_METHOD, expectation);
 	}
 
@@ -108,6 +117,7 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 		private TestCaseRegistryExpects(StackTraceElement stackElement, TC tc) {
 			super(stackElement);
 			this.tc = tc;
+			tc.setWhen(this);
 		}
 
 		@Override
@@ -122,21 +132,21 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 
 		@Override
 		public TC expects(Matcher<T> matcher, String message) {
-			return expects(new ExpectedMatcher<>(matcher, message));
+			return expectsExpectation(new ExpectedMatcher<>(matcher, message));
 		}
 
 		@Override
 		public TC expects(Matcher<T> matcher, Function<Function<Object, String>, String> message) {
-			return expects(new ExpectedMatcher<>(matcher, message));
+			return expectsExpectation(new ExpectedMatcher<>(matcher, message));
 		}
 
 		@Override
 		public TC expectsException(Class<? extends Throwable> exceptionType) {
-			return expects(new ExpectedException<>(exceptionType));
+			return expectsExpectation(new ExpectedException<>(exceptionType));
 		}
 
 		@Override
-		public TC expects(Expectation<T> expectation) {
+		public TC expectsExpectation(Expectation<T> expectation) {
 			return new TestCaseRegistryWhen(getStackElement(), expectation).when(tc);
 		}
 
@@ -148,11 +158,6 @@ public final class TestCasesRegistry<T, TC extends AbstractTestCase<T, TC>> impl
 		private TestCaseRegistryWhen(StackTraceElement stackElement, Expectation<T> expectation) {
 			super(stackElement);
 			this.expectation = expectation;
-		}
-
-		@Override
-		public <TCB extends AbstractTestCaseBuilder<T, TC, ? extends TC, ?>> TC when(TCB tcb) {
-			return when(tcb.build());
 		}
 
 		@Override
